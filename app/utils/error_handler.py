@@ -26,12 +26,30 @@ def handle_accounting_error(error):
     }), error.code
 
 def handle_sqlalchemy_error(error):
+    from flask import current_app
+    if current_app.debug:
+        import traceback
+        return jsonify({
+            "code": 500,
+            "message": "数据库操作失败",
+            "error": str(error),
+            "traceback": traceback.format_exc()
+        }), 500
     return jsonify({
         "code": 500,
         "message": "数据库操作失败"
     }), 500
 
 def handle_generic_error(error):
+    from flask import current_app
+    if current_app.debug:
+        import traceback
+        return jsonify({
+            "code": 500,
+            "message": "服务器内部错误",
+            "error": str(error),
+            "traceback": traceback.format_exc()
+        }), 500
     return jsonify({
         "code": 500,
         "message": "服务器内部错误"

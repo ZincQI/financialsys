@@ -5,6 +5,12 @@ from pydantic import ValidationError
 
 account_bp = Blueprint('accounts', __name__)
 
+@account_bp.route('/accounts', methods=['GET'])
+def get_accounts():
+    """获取所有科目列表"""
+    accounts = AccountService.get_all_accounts()
+    return jsonify([AccountResponse.from_orm(account).model_dump() for account in accounts]), 200
+
 @account_bp.route('/accounts', methods=['POST'])
 def create_account():
     """创建新科目"""

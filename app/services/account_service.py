@@ -64,3 +64,8 @@ class AccountService:
     def get_accounts_by_type(account_type):
         """根据科目类型获取科目列表"""
         return Account.query.filter_by(account_type=account_type).all()
+    
+    @staticmethod
+    def get_all_accounts():
+        """获取所有科目列表"""
+        return Account.query.all()
