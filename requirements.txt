@@ -1,0 +1,7 @@
+Flask
+Flask-SQLAlchemy
+Flask-Migrate
+PyMySQL
+pydantic
+python-dotenv
+uuid
