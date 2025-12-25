@@ -42,3 +42,16 @@ def get_income_statement():
     
     income_statement = ReportService.get_income_statement(start_date, end_date)
     return jsonify(income_statement), 200
+
+@report_bp.route('/reports/dashboard', methods=['GET'])
+def get_dashboard_data():
+    """获取仪表盘数据"""
+    try:
+        dashboard_data = ReportService.get_dashboard_data()
+        return jsonify(dashboard_data), 200
+    except Exception as e:
+        return jsonify({
+            "code": 500,
+            "message": "获取仪表盘数据失败",
+            "error": str(e)
+        }), 500

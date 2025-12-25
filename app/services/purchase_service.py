@@ -1,71 +1,106 @@
+from app.models import PurchaseOrder, OrderEntry
 from app import db
-from app.models import PurchaseOrder, Transaction, Split
-from app.utils.error_handler import ResourceNotFoundError
-from decimal import Decimal
+from app.models import Vendor
+from datetime import datetime
+import uuid
 
 class PurchaseService:
-    @staticmethod
-    def approve_order(order_guid: str):
-        """审批采购订单，自动生成交易"""
-        # 1. 获取订单
-        order = PurchaseOrder.query.filter_by(guid=order_guid).first()
-        if not order:
-            raise ResourceNotFoundError("采购订单", order_guid)
-        
-        # 2. 检查订单状态
-        if order.status == "APPROVED":
-            raise ValueError("订单已审批")
-        
-        # 3. 开始数据库事务
-        with db.session.begin_nested():
-            # 4. 更新订单状态
-            order.status = "APPROVED"
-            db.session.add(order)
-            
-            # 5. 计算订单总金额
-            total_amount = sum(entry.quantity * entry.price for entry in order.entries)
-            
-            # 6. 创建Transaction
-            transaction = Transaction(
-                post_date=order.date_opened.date(),
-                description=f"采购订单 {order.id}"
-            )
-            db.session.add(transaction)
-            db.session.flush()  # 获取transaction.guid
-            
-            # 7. 创建Splits
-            for entry in order.entries:
-                # 借方：支出科目
-                split_debit = Split(
-                    tx_guid=transaction.guid,
-                    account_guid=entry.i_acct_guid,
-                    memo=f"采购 {entry.description}",
-                    value_num=0,
-                    value_denom=100
-                )
-                split_debit.amount = entry.quantity * entry.price
-                db.session.add(split_debit)
-            
-            # 8. 贷方：应付账款-供应商（这里简化处理，假设使用一个固定科目）
-            # TODO: 实际应根据供应商关联的应付科目来设置
-            split_credit = Split(
-                tx_guid=transaction.guid,
-                account_guid="应付账款科目GUID",  # 这里需要替换为实际的应付账款科目GUID
-                memo=f"应付供应商 {order.vendor.name}",
-                value_num=0,
-                value_denom=100
-            )
-            split_credit.amount = -total_amount
-            db.session.add(split_credit)
-        
-        # 9. 提交事务
-        db.session.commit()
-        return transaction
+    def get_all_orders(self):
+        """获取所有采购订单"""
+        orders = PurchaseOrder.query.all()
+        return [{
+            "id": order.po_guid,
+            "orderNumber": order.po_number,
+            "supplier": order.vendor.name if order.vendor else "",
+            "amount": order.total_amount,
+            "date": order.order_date.strftime("%Y-%m-%d"),
+            "status": order.status,
+            "items": [
+                {
+                    "name": item.item_description,
+                    "quantity": item.quantity,
+                    "price": item.unit_price,
+                    "total": item.line_total
+                }
+                for item in order.items
+            ]
+        } for order in orders]
     
-    @staticmethod
-    def get_order(order_guid: str):
-        """根据GUID获取采购订单"""
-        order = PurchaseOrder.query.filter_by(guid=order_guid).first()
+    def get_order_by_id(self, order_id):
+        """根据ID获取采购订单详情"""
+        order = PurchaseOrder.query.filter_by(po_guid=order_id).first()
         if not order:
-            raise ResourceNotFoundError("采购订单", order_guid)
-        return order
+            return None
+        
+        return {
+            "id": order.po_guid,
+            "orderNumber": order.po_number,
+            "supplier": order.vendor.name if order.vendor else "",
+            "amount": order.total_amount,
+            "date": order.order_date.strftime("%Y-%m-%d"),
+            "status": order.status,
+            "items": [
+                {
+                    "name": item.item_description,
+                    "quantity": item.quantity,
+                    "price": item.unit_price,
+                    "total": item.line_total
+                }
+                for item in order.items
+            ]
+        }
+    
+    def create_order(self, order_data):
+        """创建新采购订单"""
+        # Generate PO number
+        year = datetime.now().year
+        month = datetime.now().month
+        sequence = PurchaseOrder.query.filter(
+            db.extract('year', PurchaseOrder.created_at) == year,
+            db.extract('month', PurchaseOrder.created_at) == month
+        ).count() + 1
+        po_number = f"PO-{year}-{sequence:04d}"
+        
+        # Create purchase order
+        order = PurchaseOrder(
+            po_guid=str(uuid.uuid4()),
+            po_number=po_number,
+            vendor_guid=order_data.get("vendor_id"),
+            order_date=datetime.strptime(order_data.get("order_date"), "%Y-%m-%d"),
+            total_amount=order_data.get("total_amount", 0),
+            status="pending",
+            notes=order_data.get("notes", "")
+        )
+        db.session.add(order)
+        db.session.flush()
+        
+        # Create order entries
+        for item_data in order_data.get("items", []):
+            item = OrderEntry(
+                entry_guid=str(uuid.uuid4()),
+                po_guid=order.po_guid,
+                item_description=item_data.get("name"),
+                quantity=item_data.get("quantity", 0),
+                unit_price=item_data.get("price", 0),
+                line_total=item_data.get("total", 0)
+            )
+            db.session.add(item)
+        
+        db.session.commit()
+        
+        return {
+            "id": order.po_guid,
+            "orderNumber": order.po_number,
+            "status": order.status
+        }
+    
+    def approve_order(self, order_id):
+        """审核采购订单"""
+        order = PurchaseOrder.query.filter_by(po_guid=order_id).first()
+        if not order:
+            return False
+        
+        order.status = "completed"
+        order.approved_at = datetime.now()
+        db.session.commit()
+        return True

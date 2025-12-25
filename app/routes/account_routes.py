@@ -36,3 +36,21 @@ def get_account(account_guid):
     """根据GUID获取科目"""
     account = AccountService.get_account(account_guid)
     return jsonify(AccountResponse.from_orm(account).model_dump()), 200
+
+@account_bp.route('/accounts/<account_guid>', methods=['DELETE'])
+def delete_account(account_guid):
+    """删除科目"""
+    try:
+        AccountService.delete_account(account_guid)
+        return jsonify({"message": "科目删除成功"}), 200
+    except Exception as e:
+        return jsonify({"code": 400, "message": str(e)}), 400
+
+@account_bp.route('/accounts/<account_guid>/transaction-count', methods=['GET'])
+def get_account_transaction_count(account_guid):
+    """获取科目关联的交易记录数量"""
+    try:
+        count = AccountService.get_account_transaction_count(account_guid)
+        return jsonify({"count": count}), 200
+    except Exception as e:
+        return jsonify({"code": 400, "message": str(e)}), 400

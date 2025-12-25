@@ -131,3 +131,140 @@ class ReportService:
             "total_expenses": expenses,
             "net_income": net_income
         }
+    
+    @staticmethod
+    def get_dashboard_data():
+        """获取仪表盘数据"""
+        today = date.today()
+        
+        # 计算当前月份
+        current_month = today.month
+        current_year = today.year
+        
+        # 计算上个月
+        if current_month == 1:
+            previous_month = 12
+            previous_year = current_year - 1
+        else:
+            previous_month = current_month - 1
+            previous_year = current_year
+        
+        # 获取资产负债表数据
+        balance_sheet = ReportService.get_balance_sheet(today)
+        
+        # 计算现金及等价物
+        # 假设现金及等价物是资产类科目下的特定科目
+        cash_and_equivalents = Decimal(0)
+        for asset in balance_sheet["assets"]:
+            if asset["name"] == "流动资产":
+                for child in asset["children"]:
+                    if child["name"] in ["库存现金", "银行存款", "其他货币资金"]:
+                        cash_and_equivalents += child["balance"]
+        
+        # 计算应付账款
+        accounts_payable = Decimal(0)
+        for liability in balance_sheet["liabilities"]:
+            if liability["name"] == "流动负债":
+                for child in liability["children"]:
+                    if child["name"] == "应付账款":
+                        accounts_payable += child["balance"]
+        
+        # 计算本月净利润
+        # 获取本月的开始和结束日期
+        start_of_month = date(current_year, current_month, 1)
+        end_of_month = today
+        
+        # 获取本月的利润表数据
+        income_statement = ReportService.get_income_statement(start_of_month, end_of_month)
+        net_income = income_statement["net_income"]
+        
+        # 获取上个月的利润表数据
+        if current_month == 1:
+            start_of_last_month = date(previous_year, previous_month, 1)
+            end_of_last_month = date(previous_year, previous_month, 31)
+        else:
+            start_of_last_month = date(previous_year, previous_month, 1)
+            end_of_last_month = date(previous_year, previous_month, 30)
+        
+        last_month_income_statement = ReportService.get_income_statement(start_of_last_month, end_of_last_month)
+        last_month_net_income = last_month_income_statement["net_income"]
+        
+        # 计算增长率
+        def calculate_growth_rate(current, previous):
+            if previous == 0:
+                return 0
+            return ((current - previous) / previous) * 100
+        
+        # 计算现金及等价物的增长率
+        # 假设现金及等价物是资产类科目下的特定科目
+        cash_and_equivalents_last_month = Decimal(0)
+        last_month_balance_sheet = ReportService.get_balance_sheet(end_of_last_month)
+        for asset in last_month_balance_sheet["assets"]:
+            if asset["name"] == "流动资产":
+                for child in asset["children"]:
+                    if child["name"] in ["库存现金", "银行存款", "其他货币资金"]:
+                        cash_and_equivalents_last_month += child["balance"]
+        
+        cash_growth_rate = calculate_growth_rate(cash_and_equivalents, cash_and_equivalents_last_month)
+        net_income_growth_rate = calculate_growth_rate(net_income, last_month_net_income)
+        
+        # 计算应付账款的增长率
+        accounts_payable_last_month = Decimal(0)
+        for liability in last_month_balance_sheet["liabilities"]:
+            if liability["name"] == "流动负债":
+                for child in liability["children"]:
+                    if child["name"] == "应付账款":
+                        accounts_payable_last_month += child["balance"]
+        
+        accounts_payable_growth_rate = calculate_growth_rate(accounts_payable, accounts_payable_last_month)
+        
+        # 获取近6个月的资金流向数据
+        months = []
+        cash_flow = []
+        
+        # 计算近6个月的月份
+        for i in range(5, -1, -1):
+            month = current_month - i
+            year = current_year
+            if month <= 0:
+                month += 12
+                year -= 1
+            
+            # 获取当月的现金及等价物余额
+            month_end = date(year, month, 28)
+            month_balance_sheet = ReportService.get_balance_sheet(month_end)
+            month_cash = Decimal(0)
+            for asset in month_balance_sheet["assets"]:
+                if asset["name"] == "流动资产":
+                    for child in asset["children"]:
+                        if child["name"] in ["库存现金", "银行存款", "其他货币资金"]:
+                            month_cash += child["balance"]
+            
+            # 获取月份名称
+            month_names = ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"]
+            months.append(month_names[month - 1])
+            cash_flow.append(month_cash)
+        
+        # 构建近6个月资金流向数据
+        cash_flow_data = [
+            {"month": month, "amount": float(amount)} for month, amount in zip(months, cash_flow)
+        ]
+        
+        # 待办任务数据（模拟数据）
+        todo_items = [
+            {"id": 1, "type": "approval", "title": "待审核采购订单 #PO-2024-1156", "deadline": "今天 17:00", "urgent": True},
+            {"id": 2, "type": "entry", "title": "12月工资发放凭证待录入", "deadline": "明天", "urgent": False},
+            {"id": 3, "type": "review", "title": "第四季度财务报表待复核", "deadline": "本周五", "urgent": False},
+            {"id": 4, "type": "payment", "title": "应付供应商款项到期提醒", "deadline": "12月28日", "urgent": True},
+        ]
+        
+        return {
+            "cash_and_equivalents": cash_and_equivalents,
+            "cash_growth_rate": cash_growth_rate,
+            "net_income": net_income,
+            "net_income_growth_rate": net_income_growth_rate,
+            "accounts_payable": accounts_payable,
+            "accounts_payable_growth_rate": accounts_payable_growth_rate,
+            "cash_flow_data": cash_flow_data,
+            "todo_items": todo_items
+        }
