@@ -1,0 +1,37 @@
+==========================================
+GnuCash-Lite 服务管理 - 快速使用指南
+==========================================
+
+【启动所有服务】
+bash /opt/GnuCash-Lite/GnuCash-Lite/scripts/start_all.sh
+
+【停止所有服务】
+bash /opt/GnuCash-Lite/GnuCash-Lite/scripts/stop_all.sh
+
+【查看服务状态】
+ps aux | grep -E "(python3.*run.py|npm run dev)"
+
+【查看日志】
+tail -f /opt/GnuCash-Lite/GnuCash-Lite/logs/backend.log
+tail -f /opt/GnuCash-Lite/GnuCash-Lite/logs/frontend.log
+
+【单独管理】
+启动后端: bash /opt/GnuCash-Lite/GnuCash-Lite/scripts/start_backend.sh
+停止后端: bash /opt/GnuCash-Lite/GnuCash-Lite/scripts/stop_backend.sh
+启动前端: bash /opt/GnuCash-Lite/GnuCash-Lite/scripts/start_frontend.sh
+停止前端: bash /opt/GnuCash-Lite/GnuCash-Lite/scripts/stop_frontend.sh
+
+==========================================
+服务地址
+==========================================
+后端 API: http://39.97.44.219:5000
+前端界面: http://39.97.44.219:5173
+
+==========================================
+注意事项
+==========================================
+1. 脚本会自动将服务放到后台运行，关闭终端不会影响服务
+2. 日志文件保存在 /opt/GnuCash-Lite/GnuCash-Lite/logs/ 目录
+3. 进程ID保存在日志目录的 .pid 文件中
+4. 如果服务异常退出，可以查看日志文件排查问题
+

@@ -6,9 +6,15 @@ purchase_service = PurchaseService()
 
 @purchase_bp.route('/purchase-orders', methods=['GET'])
 def get_purchase_orders():
-    """获取所有采购订单"""
-    orders = purchase_service.get_all_orders()
-    return jsonify(orders)
+    """获取所有采购订单，支持分页"""
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 10, type=int)
+    
+    # 限制每页最大数量
+    per_page = min(per_page, 100)
+    
+    result = purchase_service.get_all_orders(page=page, per_page=per_page)
+    return jsonify(result)
 
 @purchase_bp.route('/purchase-orders/<order_id>', methods=['GET'])
 def get_purchase_order(order_id):

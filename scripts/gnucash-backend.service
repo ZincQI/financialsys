@@ -1,0 +1,17 @@
+[Unit]
+Description=GnuCash-Lite Backend Service
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/GnuCash-Lite/GnuCash-Lite/app
+ExecStart=/usr/bin/python3 /opt/GnuCash-Lite/GnuCash-Lite/app/run.py
+Restart=always
+RestartSec=10
+StandardOutput=append:/opt/GnuCash-Lite/GnuCash-Lite/logs/backend.log
+StandardError=append:/opt/GnuCash-Lite/GnuCash-Lite/logs/backend.log
+
+[Install]
+WantedBy=multi-user.target
+

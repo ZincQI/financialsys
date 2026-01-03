@@ -55,3 +55,27 @@ def get_dashboard_data():
             "message": "获取仪表盘数据失败",
             "error": str(e)
         }), 500
+
+@report_bp.route('/reports/cash-flow', methods=['GET'])
+def get_cash_flow_statement():
+    """获取现金流量表数据"""
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
+    
+    if not start_date_str or not end_date_str:
+        return jsonify({
+            "code": 400,
+            "message": "缺少必要参数 start_date 或 end_date"
+        }), 400
+    
+    try:
+        start_date = date.fromisoformat(start_date_str)
+        end_date = date.fromisoformat(end_date_str)
+    except ValueError:
+        return jsonify({
+            "code": 400,
+            "message": "日期格式错误，应为YYYY-MM-DD"
+        }), 400
+    
+    cash_flow = ReportService.get_cash_flow_statement(start_date, end_date)
+    return jsonify(cash_flow), 200

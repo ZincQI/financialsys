@@ -1,10 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Search, Plus, Phone, Mail, MapPin, TrendingUp, Building2, Eye } from 'lucide-react';
+import { Search, Plus, Phone, Mail, MapPin, TrendingUp, Building2, Eye, Edit, Save, X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
+import { Label } from './ui/label';
+import { Textarea } from './ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { SupplierAPI } from '../api/api';
 
 interface Supplier {
@@ -38,6 +42,24 @@ export function SupplierManagement() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isViewTransactionDialogOpen, setIsViewTransactionDialogOpen] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [editFormData, setEditFormData] = useState<Partial<Supplier>>({});
+  const [isSaving, setIsSaving] = useState(false);
+  const [showNewSupplierDialog, setShowNewSupplierDialog] = useState(false);
+  const [newSupplierForm, setNewSupplierForm] = useState({
+    name: '',
+    contact: '',
+    phone: '',
+    email: '',
+    address: '',
+    category: '',
+    rating: 5,
+    status: 'active' as 'active' | 'inactive',
+    description: ''
+  });
+  const [isCreating, setIsCreating] = useState(false);
 
   // Fetch suppliers from API
   useEffect(() => {
@@ -64,15 +86,8 @@ export function SupplierManagement() {
   // Fetch transaction history for a supplier
   const fetchTransactionHistory = async (supplierId: string) => {
     try {
-      // Note: This API endpoint isn't implemented yet in the backend
-      // We'll add mock data for now
-      const mockTransactions: Transaction[] = [
-        { id: 't1', date: '2024-12-20', orderNumber: 'PO-2024-1156', amount: 458600, status: 'pending', items: '热轧钢板、冷轧钢板、不锈钢管' },
-        { id: 't2', date: '2024-11-15', orderNumber: 'PO-2024-1089', amount: 625000, status: 'completed', items: '热轧钢板 Q235' },
-        { id: 't3', date: '2024-10-28', orderNumber: 'PO-2024-0954', amount: 380000, status: 'completed', items: '冷轧钢板、镀锌板' },
-        { id: 't4', date: '2024-09-12', orderNumber: 'PO-2024-0823', amount: 512000, status: 'completed', items: '不锈钢管 304、角钢' },
-      ];
-      setTransactions(mockTransactions);
+      const data = await SupplierAPI.getSupplierTransactions(supplierId);
+      setTransactions(data);
     } catch (error) {
       console.error('Failed to fetch transaction history:', error);
       setTransactions([]);
@@ -102,13 +117,77 @@ export function SupplierManagement() {
   };
 
   const handleAddSupplier = () => {
-    // Handle add supplier logic
-    alert('新增供应商功能开发中！');
+    setNewSupplierForm({
+      name: '',
+      contact: '',
+      phone: '',
+      email: '',
+      address: '',
+      category: '',
+      rating: 5,
+      status: 'active',
+      description: ''
+    });
+    setShowNewSupplierDialog(true);
+  };
+
+  const handleCreateSupplier = async () => {
+    if (!newSupplierForm.name.trim()) {
+      alert('请填写供应商名称！');
+      return;
+    }
+
+    try {
+      setIsCreating(true);
+      const newSupplier = await SupplierAPI.createSupplier(newSupplierForm);
+      
+      // 刷新供应商列表
+      const data = await SupplierAPI.getSuppliers();
+      setSuppliers(data);
+      
+      // 选中新创建的供应商
+      setSelectedSupplier(newSupplier);
+      await fetchTransactionHistory(newSupplier.id);
+      
+      setShowNewSupplierDialog(false);
+      alert('供应商创建成功！');
+    } catch (error: any) {
+      console.error('Failed to create supplier:', error);
+      alert(error.message || '创建失败，请重试！');
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   const handleEditSupplier = () => {
-    // Handle edit supplier logic
-    alert('编辑供应商功能开发中！');
+    if (!selectedSupplier) return;
+    setEditFormData({ ...selectedSupplier });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleSaveSupplier = async () => {
+    if (!selectedSupplier || !editFormData) return;
+    
+    try {
+      setIsSaving(true);
+      const updated = await SupplierAPI.updateSupplier(selectedSupplier.id, editFormData);
+      
+      // 更新供应商列表
+      setSuppliers(suppliers.map(s => s.id === updated.id ? updated : s));
+      setSelectedSupplier(updated);
+      setIsEditDialogOpen(false);
+      alert('供应商信息已更新！');
+    } catch (error) {
+      console.error('Failed to update supplier:', error);
+      alert('更新失败，请重试！');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleViewTransactionDetails = async (transaction: Transaction) => {
+    setSelectedTransaction(transaction);
+    setIsViewTransactionDialogOpen(true);
   };
 
   return (
@@ -262,12 +341,12 @@ export function SupplierManagement() {
                     <div className="flex items-center justify-between mb-4">
                       <h4>交易记录</h4>
                       <span className="text-sm text-gray-500">
-                        共 {transactionHistory[selectedSupplier.id]?.length || 0} 笔交易
+                        共 {transactions.length} 笔交易
                       </span>
                     </div>
 
                     <div className="space-y-3">
-                      {(transactionHistory[selectedSupplier.id] || []).map((transaction) => (
+                      {transactions.map((transaction) => (
                         <div
                           key={transaction.id}
                           className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
@@ -292,7 +371,12 @@ export function SupplierManagement() {
                             <span className="font-mono font-semibold text-[#1A365D]">
                               ¥ {transaction.amount.toLocaleString()}.00
                             </span>
-                            <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="text-blue-600 hover:text-blue-700"
+                              onClick={() => handleViewTransactionDetails(transaction)}
+                            >
                               <Eye className="w-4 h-4 mr-1" />
                               查看详情
                             </Button>
@@ -366,6 +450,322 @@ export function SupplierManagement() {
           )}
         </Card>
       </div>
+
+      {/* Edit Supplier Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>编辑供应商信息</DialogTitle>
+            <DialogDescription>
+              修改供应商的基本信息和联系方式
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="name">供应商名称 *</Label>
+                <Input
+                  id="name"
+                  value={editFormData.name || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="code">供应商编码</Label>
+                <Input
+                  id="code"
+                  value={editFormData.code || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, code: e.target.value })}
+                  className="mt-1"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="contact">联系人</Label>
+                <Input
+                  id="contact"
+                  value={editFormData.contact || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, contact: e.target.value })}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="phone">联系电话</Label>
+                <Input
+                  id="phone"
+                  value={editFormData.phone || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })}
+                  className="mt-1"
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="email">电子邮箱</Label>
+              <Input
+                id="email"
+                type="email"
+                value={editFormData.email || ''}
+                onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="address">公司地址</Label>
+              <Input
+                id="address"
+                value={editFormData.address || ''}
+                onChange={(e) => setEditFormData({ ...editFormData, address: e.target.value })}
+                className="mt-1"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="category">供应商类别</Label>
+                <Input
+                  id="category"
+                  value={editFormData.category || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, category: e.target.value })}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="rating">评级 (1-5)</Label>
+                <Input
+                  id="rating"
+                  type="number"
+                  min="1"
+                  max="5"
+                  value={editFormData.rating || 5}
+                  onChange={(e) => setEditFormData({ ...editFormData, rating: parseInt(e.target.value) })}
+                  className="mt-1"
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="status">状态</Label>
+              <Select
+                value={editFormData.status || 'active'}
+                onValueChange={(value) => setEditFormData({ ...editFormData, status: value as 'active' | 'inactive' })}
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">合作中</SelectItem>
+                  <SelectItem value="inactive">已停用</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="description">供应商简介</Label>
+              <Textarea
+                id="description"
+                value={editFormData.description || ''}
+                onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+                className="mt-1"
+                rows={4}
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-4 border-t">
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              <X className="w-4 h-4 mr-2" />
+              取消
+            </Button>
+            <Button 
+              onClick={handleSaveSupplier}
+              disabled={isSaving || !editFormData.name}
+              className="bg-[#1A365D] hover:bg-[#2A4A7D]"
+            >
+              <Save className="w-4 h-4 mr-2" />
+              {isSaving ? '保存中...' : '保存'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Transaction Details Dialog */}
+      <Dialog open={isViewTransactionDialogOpen} onOpenChange={setIsViewTransactionDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>交易详情</DialogTitle>
+            <DialogDescription>
+              订单号: {selectedTransaction?.orderNumber}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedTransaction && (
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-gray-500">订单号</Label>
+                  <p className="font-mono font-medium">{selectedTransaction.orderNumber}</p>
+                </div>
+                <div>
+                  <Label className="text-gray-500">交易日期</Label>
+                  <p className="font-medium">{selectedTransaction.date}</p>
+                </div>
+                <div>
+                  <Label className="text-gray-500">交易金额</Label>
+                  <p className="font-mono font-semibold text-[#1A365D] text-lg">
+                    ¥ {selectedTransaction.amount.toLocaleString()}.00
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-gray-500">状态</Label>
+                  <div>
+                    {selectedTransaction.status === 'completed' ? (
+                      <Badge className="bg-green-100 text-green-700">已完成</Badge>
+                    ) : (
+                      <Badge className="bg-orange-100 text-orange-700">待审核</Badge>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div>
+                <Label className="text-gray-500">商品明细</Label>
+                <p className="text-sm text-gray-700 mt-1 bg-gray-50 p-3 rounded-lg">
+                  {selectedTransaction.items}
+                </p>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* New Supplier Dialog */}
+      <Dialog open={showNewSupplierDialog} onOpenChange={setShowNewSupplierDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>新增供应商</DialogTitle>
+            <DialogDescription>
+              填写供应商的基本信息和联系方式
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="new-name">供应商名称 *</Label>
+                <Input
+                  id="new-name"
+                  value={newSupplierForm.name}
+                  onChange={(e) => setNewSupplierForm({ ...newSupplierForm, name: e.target.value })}
+                  className="mt-1"
+                  placeholder="请输入供应商名称"
+                />
+              </div>
+              <div>
+                <Label htmlFor="new-category">供应商类别</Label>
+                <Input
+                  id="new-category"
+                  value={newSupplierForm.category}
+                  onChange={(e) => setNewSupplierForm({ ...newSupplierForm, category: e.target.value })}
+                  className="mt-1"
+                  placeholder="如：原材料供应商"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="new-contact">联系人</Label>
+                <Input
+                  id="new-contact"
+                  value={newSupplierForm.contact}
+                  onChange={(e) => setNewSupplierForm({ ...newSupplierForm, contact: e.target.value })}
+                  className="mt-1"
+                  placeholder="联系人姓名"
+                />
+              </div>
+              <div>
+                <Label htmlFor="new-phone">联系电话</Label>
+                <Input
+                  id="new-phone"
+                  value={newSupplierForm.phone}
+                  onChange={(e) => setNewSupplierForm({ ...newSupplierForm, phone: e.target.value })}
+                  className="mt-1"
+                  placeholder="联系电话"
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="new-email">电子邮箱</Label>
+              <Input
+                id="new-email"
+                type="email"
+                value={newSupplierForm.email}
+                onChange={(e) => setNewSupplierForm({ ...newSupplierForm, email: e.target.value })}
+                className="mt-1"
+                placeholder="example@company.com"
+              />
+            </div>
+            <div>
+              <Label htmlFor="new-address">公司地址</Label>
+              <Input
+                id="new-address"
+                value={newSupplierForm.address}
+                onChange={(e) => setNewSupplierForm({ ...newSupplierForm, address: e.target.value })}
+                className="mt-1"
+                placeholder="公司详细地址"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="new-rating">评级 (1-5)</Label>
+                <Input
+                  id="new-rating"
+                  type="number"
+                  min="1"
+                  max="5"
+                  value={newSupplierForm.rating}
+                  onChange={(e) => setNewSupplierForm({ ...newSupplierForm, rating: parseInt(e.target.value) || 5 })}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="new-status">状态</Label>
+                <Select
+                  value={newSupplierForm.status}
+                  onValueChange={(value) => setNewSupplierForm({ ...newSupplierForm, status: value as 'active' | 'inactive' })}
+                >
+                  <SelectTrigger className="mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">合作中</SelectItem>
+                    <SelectItem value="inactive">已停用</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="new-description">供应商简介</Label>
+              <Textarea
+                id="new-description"
+                value={newSupplierForm.description}
+                onChange={(e) => setNewSupplierForm({ ...newSupplierForm, description: e.target.value })}
+                className="mt-1"
+                rows={4}
+                placeholder="供应商简介、合作历史等信息"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-4 border-t">
+            <Button variant="outline" onClick={() => setShowNewSupplierDialog(false)} disabled={isCreating}>
+              <X className="w-4 h-4 mr-2" />
+              取消
+            </Button>
+            <Button 
+              onClick={handleCreateSupplier}
+              disabled={isCreating || !newSupplierForm.name.trim()}
+              className="bg-[#1A365D] hover:bg-[#2A4A7D]"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              {isCreating ? '创建中...' : '创建'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

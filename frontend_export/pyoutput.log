@@ -1,0 +1,10 @@
+nohup: 忽略输入
+
+> @figma/my-make-file@0.0.1 dev
+> vite
+
+
+  VITE v6.3.5  ready in 528 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://172.25.56.30:5173/

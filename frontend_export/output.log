@@ -1,0 +1,12 @@
+nohup: ignoring input
+
+> @figma/my-make-file@0.0.1 dev
+> vite
+
+
+  VITE v6.3.5  ready in 493 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://172.25.56.30:5173/
+3:09:16 PM [vite] (client) hmr update /src/app/components/ReportCenter.tsx, /src/styles/index.css
+3:09:33 PM [vite] (client) hmr update /src/app/components/ReportCenter.tsx, /src/styles/index.css

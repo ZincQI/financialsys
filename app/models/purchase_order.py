@@ -11,7 +11,9 @@ class PurchaseOrder(BaseModel):
     vendor_guid = db.Column(db.String(36), db.ForeignKey('vendors.guid'), nullable=False)
     status = db.Column(OrderStatus, default='OPEN', nullable=False)
     date_opened = db.Column(db.DateTime, default=datetime.utcnow)
+    credit_account_guid = db.Column(db.String(36), db.ForeignKey('accounts.guid'), nullable=True)  # 贷方科目（应付账款或银行存款等）
     
     # Relationships
     vendor = db.relationship('Vendor')
+    credit_account = db.relationship('Account', foreign_keys=[credit_account_guid])
     entries = db.relationship('OrderEntry', back_populates='order', cascade='all, delete-orphan')

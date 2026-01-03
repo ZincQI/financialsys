@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { LayoutDashboard, FileText, FolderTree, ShoppingCart, PieChart, Search, Bell, User, Users } from 'lucide-react';
+import { LayoutDashboard, FileText, FolderTree, ShoppingCart, PieChart, Search, Bell, User, Users, LogOut, Zap } from 'lucide-react';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
 
@@ -7,12 +7,14 @@ interface LayoutProps {
   children: React.ReactNode;
   currentPage: string;
   onNavigate: (page: string) => void;
+  onLogout: () => void;
 }
 
-export function Layout({ children, currentPage, onNavigate }: LayoutProps) {
+export function Layout({ children, currentPage, onNavigate, onLogout }: LayoutProps) {
   const navItems = [
     { id: 'dashboard', label: '仪表盘', icon: LayoutDashboard },
     { id: 'transaction', label: '凭证录入', icon: FileText },
+    { id: 'quick-entry', label: '快速记账', icon: Zap },
     { id: 'accounts', label: '会计科目', icon: FolderTree },
     { id: 'purchase', label: '采购管理', icon: ShoppingCart },
     { id: 'suppliers', label: '供应商管理', icon: Users },
@@ -57,7 +59,7 @@ export function Layout({ children, currentPage, onNavigate }: LayoutProps) {
 
         {/* Footer */}
         <div className="p-4 border-t border-white/10 text-xs text-white/50">
-          <p>© 2024 GnuCash-Lite</p>
+          <p>© GnuCash-Lite</p>
           <p>v1.0.0</p>
         </div>
       </aside>
@@ -98,6 +100,17 @@ export function Layout({ children, currentPage, onNavigate }: LayoutProps) {
               <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
                 <User className="w-5 h-5 text-gray-600" />
               </div>
+            </Button>
+
+            {/* Logout Button */}
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={onLogout}
+              className="text-gray-600 hover:text-red-600"
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              退出登录
             </Button>
           </div>
         </header>

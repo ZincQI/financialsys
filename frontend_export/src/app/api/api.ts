@@ -1,6 +1,10 @@
 // API Service Layer
 
-const API_BASE_URL = '/api';
+// 后端 Host 统一配置：
+// - 默认指向部署服务器: http://39.97.44.219:5000
+// - 可通过 Vite 环境变量 VITE_API_HOST 覆盖
+const API_HOST = import.meta.env.VITE_API_HOST || 'http://39.97.44.219:5000';
+const API_BASE_URL = `${API_HOST}/api`;
 
 // Generic fetch function with error handling
 async function fetchAPI(endpoint: string, options: RequestInit = {}) {
@@ -72,6 +76,27 @@ export const AccountAPI = {
       method: 'DELETE',
     });
   },
+  
+  // Update account (only name)
+  updateAccount: async (guid: string, name: string) => {
+    return fetchAPI(`/accounts/${guid}`, {
+      method: 'PUT',
+      body: JSON.stringify({ name }),
+    });
+  },
+  
+  // Get account transactions
+  getAccountTransactions: async (guid: string) => {
+    return fetchAPI(`/accounts/${guid}/transactions`);
+  },
+  
+  // Quick entry from account (快速记账)
+  createQuickEntry: async (accountGuid: string, entryData: any) => {
+    return fetchAPI(`/accounts/${accountGuid}/quick-entry`, {
+      method: 'POST',
+      body: JSON.stringify(entryData),
+    });
+  },
 };
 
 // Transactions API
@@ -114,6 +139,11 @@ export const ReportAPI = {
     return fetchAPI(`/reports/income-statement?start_date=${startDate}&end_date=${endDate}`);
   },
   
+  // Get cash flow statement
+  getCashFlowStatement: async (startDate: string, endDate: string) => {
+    return fetchAPI(`/reports/cash-flow?start_date=${startDate}&end_date=${endDate}`);
+  },
+  
   // Get dashboard data
   getDashboardData: async () => {
     return fetchAPI('/reports/dashboard');
@@ -122,9 +152,9 @@ export const ReportAPI = {
 
 // Purchase Orders API
 export const PurchaseOrderAPI = {
-  // Get all purchase orders
-  getPurchaseOrders: async () => {
-    return fetchAPI('/purchase-orders');
+  // Get all purchase orders with pagination
+  getPurchaseOrders: async (page: number = 1, perPage: number = 10) => {
+    return fetchAPI(`/purchase-orders?page=${page}&per_page=${perPage}`);
   },
   
   // Get purchase order by ID
@@ -159,11 +189,24 @@ export const SupplierAPI = {
   getSupplier: async (guid: string) => {
     return fetchAPI(`/vendors/${guid}`);
   },
+
+  // Get supplier transaction history
+  getSupplierTransactions: async (guid: string) => {
+    return fetchAPI(`/vendors/${guid}/transactions`);
+  },
   
   // Create new supplier
   createSupplier: async (supplierData: any) => {
     return fetchAPI('/vendors', {
       method: 'POST',
+      body: JSON.stringify(supplierData),
+    });
+  },
+  
+  // Update supplier
+  updateSupplier: async (guid: string, supplierData: any) => {
+    return fetchAPI(`/vendors/${guid}`, {
+      method: 'PUT',
       body: JSON.stringify(supplierData),
     });
   },

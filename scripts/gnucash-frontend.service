@@ -1,0 +1,17 @@
+[Unit]
+Description=GnuCash-Lite Frontend Service
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/GnuCash-Lite/GnuCash-Lite/frontend_export
+ExecStart=/usr/bin/npm run dev
+Restart=always
+RestartSec=10
+StandardOutput=append:/opt/GnuCash-Lite/GnuCash-Lite/logs/frontend.log
+StandardError=append:/opt/GnuCash-Lite/GnuCash-Lite/logs/frontend.log
+
+[Install]
+WantedBy=multi-user.target
+

@@ -33,3 +33,9 @@ def update_vendor(vendor_guid):
     if vendor:
         return jsonify(vendor)
     return jsonify({'error': '供应商不存在'}), 404
+
+@vendor_bp.route('/vendors/<vendor_guid>/transactions', methods=['GET'])
+def get_vendor_transactions(vendor_guid):
+    """获取指定供应商的交易历史"""
+    history = vendor_service.get_transaction_history(vendor_guid)
+    return jsonify(history)
