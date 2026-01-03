@@ -1,5 +1,5 @@
 import { defineConfig } from 'vite'
-import path from 'path'
+// @ts-ignore - Vite 配置文件中可以使用相对路径
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 
@@ -13,7 +13,7 @@ export default defineConfig({
   resolve: {
     alias: {
       // Alias @ to the src directory
-      '@': path.resolve(__dirname, './src'),
+      '@': '/src',
     },
   },
   optimizeDeps: {
@@ -29,11 +29,18 @@ export default defineConfig({
   },
   server: {
     // 开发服务器配置
-    host: 'localhost',  
+    host: '0.0.0.0', // 监听所有网络接口，允许外部访问
     port: 5173,
-    open: true, // 自动打开浏览器
     hmr: {
       overlay: true,
+    },
+    // 代理配置：将 /api 请求代理到后端服务器
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+        secure: false,
+      },
     },
   },
   build: {

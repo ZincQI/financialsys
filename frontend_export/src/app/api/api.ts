@@ -1,9 +1,21 @@
 // API Service Layer
 
 // 后端 Host 统一配置：
-// - 默认指向部署服务器: http://39.97.44.219:5000
-// - 可通过 Vite 环境变量 VITE_API_HOST 覆盖
-const API_HOST = import.meta.env.VITE_API_HOST || 'http://localhost:5000';
+// 方式1: 使用环境变量 VITE_API_HOST（推荐）
+//   创建 .env.local 文件，设置: VITE_API_HOST=http://localhost:5000
+// 方式2: 直接修改下面的默认值
+// 方式3: 开发环境使用代理（当前配置），生产环境使用服务器地址
+
+// 本地开发默认地址（如果后端运行在其他端口，请修改）
+const DEFAULT_LOCAL_HOST = 'http://localhost:5000';
+
+// 服务器部署地址
+const DEFAULT_SERVER_HOST = 'http://39.97.44.219:5000';
+
+// 获取 API Host
+// 优先级：环境变量 > 开发环境本地地址 > 生产环境服务器地址
+const isDevelopment = (import.meta as any).env?.DEV ?? true;
+const API_HOST = (import.meta as any).env?.VITE_API_HOST || (isDevelopment ? DEFAULT_LOCAL_HOST : DEFAULT_SERVER_HOST);
 const API_BASE_URL = `${API_HOST}/api`;
 
 // Generic fetch function with error handling
