@@ -29,8 +29,9 @@ export default defineConfig({
   },
   server: {
     // 开发服务器配置
-    host: '0.0.0.0', // 监听所有网络接口，允许外部访问
+    host: 'localhost',  
     port: 5173,
+    open: true, // 自动打开浏览器
     hmr: {
       overlay: true,
     },

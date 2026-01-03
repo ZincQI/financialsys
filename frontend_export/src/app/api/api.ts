@@ -3,7 +3,7 @@
 // 后端 Host 统一配置：
 // - 默认指向部署服务器: http://39.97.44.219:5000
 // - 可通过 Vite 环境变量 VITE_API_HOST 覆盖
-const API_HOST = import.meta.env.VITE_API_HOST || 'http://39.97.44.219:5000';
+const API_HOST = import.meta.env.VITE_API_HOST || 'http://localhost:5000';
 const API_BASE_URL = `${API_HOST}/api`;
 
 // Generic fetch function with error handling
